@@ -11,7 +11,10 @@ app.use(cors());
 app.use(express.json());
 
 // Setup a constant TARGET_DIR pointing to a folder named target_data in the current directory
-const TARGET_DIR = path.join(process.cwd(), 'target_data');
+// On Vercel, the filesystem is read-only except for /tmp
+const TARGET_DIR = process.env.VERCEL 
+  ? path.join('/tmp', 'target_data') 
+  : path.join(process.cwd(), 'target_data');
 
 // Startup function that automatically creates target_data if it doesn't exist
 function init() {
@@ -134,4 +137,8 @@ async function startServer() {
   });
 }
 
-startServer();
+if (!process.env.VERCEL) {
+  startServer();
+}
+
+export default app;
