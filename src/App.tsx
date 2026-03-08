@@ -16,7 +16,17 @@ export default function App() {
     try {
       addLog('Fetching file list from /api/files...');
       const response = await fetch('/api/files');
-      if (!response.ok) throw new Error('Failed to fetch files');
+      if (!response.ok) {
+        const text = await response.text();
+        let errorMessage = 'Failed to fetch files';
+        try {
+          const data = JSON.parse(text);
+          errorMessage = data.error || errorMessage;
+        } catch {
+          errorMessage = `Server unavailable (${response.status})`;
+        }
+        throw new Error(errorMessage);
+      }
       const data = await response.json();
       setFiles(data);
       addLog(`Successfully fetched ${data.length} files.`);
@@ -54,8 +64,15 @@ export default function App() {
       });
 
       if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || 'Upload failed');
+        const text = await response.text();
+        let errorMessage = 'Upload failed';
+        try {
+          const errData = JSON.parse(text);
+          errorMessage = errData.error || errorMessage;
+        } catch {
+          errorMessage = `Server unavailable (${response.status})`;
+        }
+        throw new Error(errorMessage);
       }
 
       addLog(`Upload successful: ${file.name}`);
@@ -78,8 +95,15 @@ export default function App() {
       });
 
       if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || 'Encryption failed');
+        const text = await response.text();
+        let errorMessage = 'Encryption failed';
+        try {
+          const errData = JSON.parse(text);
+          errorMessage = errData.error || errorMessage;
+        } catch {
+          errorMessage = `Server unavailable (${response.status})`;
+        }
+        throw new Error(errorMessage);
       }
 
       addLog(`Encryption successful: ${filename} -> ${filename}.txt`);
