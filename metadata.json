@@ -1,0 +1,5 @@
+{
+  "name": "Red Team OS Backend",
+  "description": "A Node.js/Express server for a Red Team OS educational simulation handling file uploads and simulated ransomware encryption.",
+  "requestFramePermissions": []
+}
