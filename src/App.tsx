@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, File, Lock, Terminal, ShieldAlert, Download } from 'lucide-react';
+import { Upload, File, Lock, Terminal, Shield, Download, Server, HardDrive, RefreshCw } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
 export default function App() {
   const [files, setFiles] = useState<string[]>([]);
@@ -118,101 +119,174 @@ export default function App() {
     window.open(`/api/download/${encodeURIComponent(filename)}`, '_blank');
   };
 
+  const getLogColor = (logText: string) => {
+    if (logText.includes('[ERROR]')) return 'text-red-400';
+    if (logText.includes('[WARN]')) return 'text-amber-400';
+    if (logText.includes('[SUCCESS]')) return 'text-emerald-400';
+    return 'text-zinc-400';
+  };
+
   return (
-    <div className="min-h-screen bg-gray-950 text-green-500 font-mono flex flex-col md:flex-row p-4 gap-4">
-      {/* Sidebar - 1/3 width */}
-      <div className="w-full md:w-1/3 border border-green-800 rounded-lg flex flex-col bg-gray-900/50 overflow-hidden">
-        <div className="p-4 border-b border-green-800 flex justify-between items-center bg-gray-900">
-          <div className="flex items-center gap-2 font-bold text-lg">
-            <ShieldAlert className="w-5 h-5 text-red-500" />
-            <span>TARGET_DATA</span>
+    <div className="min-h-screen bg-[#09090b] text-zinc-200 font-sans flex flex-col overflow-hidden selection:bg-blue-500/30">
+      
+      {/* Top Navigation Bar */}
+      <header className="h-14 border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-md flex items-center justify-between px-6 shrink-0 z-10">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Shield className="w-5 h-5 text-blue-500" />
+            <span className="font-semibold text-zinc-100 tracking-wide text-sm">ThreatOps Platform</span>
+          </div>
+          <div className="h-4 w-px bg-zinc-800 mx-2"></div>
+          <div className="flex items-center gap-2 text-xs text-zinc-400 font-medium">
+            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+            Endpoint Connected
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-6 text-xs text-zinc-400 font-medium">
+          <div className="flex items-center gap-2">
+            <HardDrive className="w-4 h-4 text-zinc-500" />
+            <span>Target Volume: /target_data</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Server className="w-4 h-4 text-zinc-500" />
+            <span>Files Identified: {files.length}</span>
+          </div>
+        </div>
+      </header>
+
+      <div className="flex-1 flex flex-col md:flex-row p-4 gap-4 overflow-hidden relative z-10 bg-[#09090b]">
+        
+        {/* Left Panel: File System View */}
+        <div className="w-full md:w-1/3 border border-zinc-800 rounded-lg flex flex-col bg-[#0c0c0e] shadow-lg overflow-hidden">
+          
+          <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-[#09090b]">
+            <h2 className="text-sm font-semibold text-zinc-300 flex items-center gap-2">
+              Endpoint File System
+            </h2>
+            
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleFileChange} 
+              className="hidden" 
+            />
+            <button 
+              onClick={handleUploadClick}
+              className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 hover:text-white rounded-md transition-all flex items-center gap-2 text-xs font-medium border border-zinc-700 shadow-sm"
+              title="Upload File to Endpoint"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span>Upload</span>
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-3 bg-[#0c0c0e]">
+            {files.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-zinc-500 text-sm gap-2">
+                <HardDrive className="w-8 h-8 opacity-20" />
+                <span>No files found on target volume</span>
+              </div>
+            ) : (
+              <ul className="space-y-1.5">
+                <AnimatePresence>
+                  {files.map((filename) => {
+                    const isEncrypted = filename.endsWith('.txt');
+                    
+                    return (
+                      <motion.li 
+                        key={filename}
+                        layout
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.15 } }}
+                        className={`flex items-center justify-between p-2.5 rounded-md transition-colors group border ${
+                          isEncrypted 
+                            ? 'bg-[#181010] border-red-900/40 hover:border-red-800/60' 
+                            : 'bg-zinc-900 border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 overflow-hidden pr-2">
+                          {isEncrypted ? (
+                            <Lock className="w-4 h-4 text-red-400 shrink-0" />
+                          ) : (
+                            <File className="w-4 h-4 text-blue-400 shrink-0" />
+                          )}
+                          
+                          <span className={`truncate text-sm font-medium ${isEncrypted ? 'text-zinc-500 line-through' : 'text-zinc-300'}`}>
+                            {filename}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                          
+                          {/* Execute/Lock Button */}
+                          {!isEncrypted && (
+                            <button
+                              onClick={() => handleEncrypt(filename)}
+                              className="px-2.5 py-1 bg-zinc-800 hover:bg-red-950 text-red-400 hover:text-red-300 border border-zinc-700 hover:border-red-800 rounded text-[11px] font-semibold transition-colors"
+                            >
+                              Encrypt
+                            </button>
+                          )}
+
+                          {/* Download Button */}
+                          <button
+                            onClick={() => handleDownload(filename)}
+                            className={`p-1.5 rounded transition-colors border border-transparent ${
+                              isEncrypted 
+                                ? 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300 hover:border-zinc-700' 
+                                : 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300 hover:border-zinc-700'
+                            }`}
+                            title="Download File"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </motion.li>
+                    );
+                  })}
+                </AnimatePresence>
+              </ul>
+            )}
+          </div>
+        </div>
+
+        {/* Right Panel: Operations Event Log */}
+        <div className="w-full md:w-2/3 border border-zinc-800 rounded-lg flex flex-col bg-[#0c0c0e] shadow-lg overflow-hidden">
+          
+          <div className="p-3 border-b border-zinc-800 flex items-center justify-between bg-[#09090b]">
+            <h2 className="text-sm font-semibold text-zinc-300 flex items-center gap-2">
+              <Terminal className="w-4 h-4 text-zinc-500" />
+              Event Logs
+            </h2>
+            <button 
+              onClick={fetchFiles}
+              className="p-1.5 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded transition-colors"
+              title="Refresh State"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+            </button>
           </div>
           
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            onChange={handleFileChange} 
-            className="hidden" 
-          />
-          <button 
-            onClick={handleUploadClick}
-            className="p-2 hover:bg-green-900/30 rounded transition-colors flex items-center gap-2 text-sm border border-green-800"
-            title="Upload File"
-          >
-            <Upload className="w-4 h-4" />
-            <span>UPLOAD</span>
-          </button>
+          <div className="flex-1 overflow-y-auto p-4 space-y-1 bg-[#09090b] font-mono text-[13px] tracking-tight">
+            <AnimatePresence initial={false}>
+              {logs.map((log, index) => (
+                <motion.div 
+                  key={index} 
+                  initial={{ opacity: 0, x: -5 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className={`${getLogColor(log)} break-words py-0.5`}
+                >
+                  {log}
+                </motion.div>
+              ))}
+            </AnimatePresence>
+            <div ref={logsEndRef} className="h-4" />
+          </div>
+          
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4">
-          {files.length === 0 ? (
-            <div className="text-green-800 text-center mt-10 italic">No files found in target directory.</div>
-          ) : (
-            <ul className="space-y-2">
-              {files.map((filename) => {
-                const isEncrypted = filename.endsWith('.txt');
-                
-                return (
-                  <li 
-                    key={filename} 
-                    className="flex items-center justify-between p-3 border border-green-900/50 rounded bg-gray-950/50 hover:border-green-700 transition-colors"
-                  >
-                    <div className="flex items-center gap-3 overflow-hidden">
-                      {isEncrypted ? (
-                        <Lock className="w-4 h-4 text-red-500 shrink-0" />
-                      ) : (
-                        <File className="w-4 h-4 text-green-400 shrink-0" />
-                      )}
-                      
-                      <span className={`truncate ${isEncrypted ? 'line-through text-green-800' : 'text-green-400'}`}>
-                        {filename}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        onClick={() => handleDownload(filename)}
-                        className="p-1.5 text-green-500 hover:bg-green-900/30 hover:text-green-400 rounded transition-colors"
-                        title="Download File"
-                      >
-                        <Download className="w-4 h-4" />
-                      </button>
-
-                      {!isEncrypted && (
-                        <button
-                          onClick={() => handleEncrypt(filename)}
-                          className="px-3 py-1 bg-red-950/30 text-red-500 border border-red-900 rounded text-xs font-bold hover:bg-red-900/50 hover:text-red-400 transition-colors"
-                        >
-                          LOCK
-                        </button>
-                      )}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
-      </div>
-
-      {/* Terminal Log - 2/3 width */}
-      <div className="w-full md:w-2/3 border border-green-800 rounded-lg flex flex-col bg-black overflow-hidden relative">
-        <div className="p-2 border-b border-green-800 flex items-center gap-2 bg-gray-900 text-xs">
-          <Terminal className="w-4 h-4" />
-          <span>root@red-team-os:~# tail -f /var/log/syslog</span>
-        </div>
-        
-        <div className="flex-1 overflow-y-auto p-4 space-y-1 text-sm">
-          {logs.map((log, index) => (
-            <div key={index} className={`${log.includes('ERROR') ? 'text-red-500' : 'text-green-500'}`}>
-              {log}
-            </div>
-          ))}
-          <div ref={logsEndRef} />
-        </div>
-        
-        {/* Scanline effect overlay */}
-        <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] opacity-20"></div>
       </div>
     </div>
   );
